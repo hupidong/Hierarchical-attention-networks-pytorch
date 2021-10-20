@@ -64,7 +64,7 @@ def get_max_lengths(data_path):
 
         sorted_word_length = sorted(word_length_list)
         sorted_sent_length = sorted(sent_length_list)
-
+    # 从小到大排序，取80%分位点的长度为目标长度
     return sorted_word_length[int(0.8*len(sorted_word_length))], sorted_sent_length[int(0.8*len(sorted_sent_length))]
 
 if __name__ == "__main__":

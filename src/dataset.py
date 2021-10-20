@@ -65,5 +65,6 @@ class MyDataset(Dataset):
 
 
 if __name__ == '__main__':
-    test = MyDataset(data_path="../data/test.csv", dict_path="../data/glove.6B.50d.txt")
+    test = MyDataset(data_path="/Users/hupidong/Work/data/yelp/yelp_review_polarity/test.csv",
+                     dict_path="/Users/hupidong/Work/data/word-embeddings/glove.6B/glove.6B.50d.txt")
     print (test.__getitem__(index=1)[0].shape)

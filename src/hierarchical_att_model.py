@@ -28,8 +28,10 @@ class HierAttNet(nn.Module):
         self.word_hidden_state = torch.zeros(2, batch_size, self.word_hidden_size)
         self.sent_hidden_state = torch.zeros(2, batch_size, self.sent_hidden_size)
         if torch.cuda.is_available():
-            self.word_hidden_state = self.word_hidden_state.cuda()
-            self.sent_hidden_state = self.sent_hidden_state.cuda()
+            CUDA = torch.cuda.is_available()
+            DEVICE = torch.device('cuda' if CUDA else 'cpu')
+            self.word_hidden_state = self.word_hidden_state.to(DEVICE)
+            self.sent_hidden_state = self.sent_hidden_state.to(DEVICE)
 
     def forward(self, input):
 

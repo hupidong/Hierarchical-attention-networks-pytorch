@@ -18,7 +18,7 @@ def get_args():
     parser = argparse.ArgumentParser(
         """Implementation of the model described in the paper: Hierarchical Attention Networks for Document Classification""")
     parser.add_argument("--batch_size", type=int, default=128)
-    parser.add_argument("--num_epoches", type=int, default=100)
+    parser.add_argument("--num_epoches", type=int, default=1)
     parser.add_argument("--lr", type=float, default=0.1)
     parser.add_argument("--momentum", type=float, default=0.9)
     parser.add_argument("--word_hidden_size", type=int, default=50)
@@ -29,7 +29,7 @@ def get_args():
                         help="Early stopping's parameter: number of epochs with no improvement after which training will be stopped. Set to 0 to disable this technique.")
     parser.add_argument("--train_set", type=str, default="data/train.csv")
     parser.add_argument("--test_set", type=str, default="data/test.csv")
-    parser.add_argument("--test_interval", type=int, default=1, help="Number of epoches between testing phases")
+    parser.add_argument("--test_interval", type=int, default=5, help="Number of epoches between testing phases")
     parser.add_argument("--word2vec_path", type=str, default="data/glove.6B.50d.txt")
     parser.add_argument("--log_path", type=str, default="tensorboard/han_voc")
     parser.add_argument("--saved_path", type=str, default="trained_models")
@@ -38,12 +38,16 @@ def get_args():
 
 
 def train(opt):
-    if torch.cuda.is_available():
+    CUDA = torch.cuda.is_available()
+    if CUDA:
         torch.cuda.manual_seed(123)
     else:
         torch.manual_seed(123)
-    output_file = open(opt.saved_path + os.sep + "logs.txt", "w")
+    DEVICE = torch.device('cuda' if CUDA else 'cpu')
+
+    output_file = open(os.path.join(opt.saved_path,'logs.txt'), "w")
     output_file.write("Model's parameters: {}".format(vars(opt)))
+    output_file.flush()
     training_params = {"batch_size": opt.batch_size,
                        "shuffle": True,
                        "drop_last": True}
@@ -67,8 +71,8 @@ def train(opt):
     writer = SummaryWriter(opt.log_path)
     # writer.add_graph(model, torch.zeros(opt.batch_size, max_sent_length, max_word_length))
 
-    if torch.cuda.is_available():
-        model.cuda()
+    if CUDA:
+        model.to(DEVICE)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=opt.lr, momentum=opt.momentum)
@@ -78,9 +82,9 @@ def train(opt):
     num_iter_per_epoch = len(training_generator)
     for epoch in range(opt.num_epoches):
         for iter, (feature, label) in enumerate(training_generator):
-            if torch.cuda.is_available():
-                feature = feature.cuda()
-                label = label.cuda()
+            if CUDA:
+                feature = feature.to(DEVICE)
+                label = label.to(DEVICE)
             optimizer.zero_grad()
             model._init_hidden_state()
             predictions = model(feature)
@@ -104,9 +108,9 @@ def train(opt):
             te_pred_ls = []
             for te_feature, te_label in test_generator:
                 num_sample = len(te_label)
-                if torch.cuda.is_available():
-                    te_feature = te_feature.cuda()
-                    te_label = te_label.cuda()
+                if CUDA:
+                    te_feature = te_feature.to(DEVICE)
+                    te_label = te_label.to(DEVICE)
                 with torch.no_grad():
                     model._init_hidden_state(num_sample)
                     te_predictions = model(te_feature)
