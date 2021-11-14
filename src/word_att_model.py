@@ -9,10 +9,12 @@ import pandas as pd
 import numpy as np
 import csv
 
+
 class WordAttNet(nn.Module):
     def __init__(self, word2vec_path, hidden_size=50):
         super(WordAttNet, self).__init__()
-        word_dict = pd.read_csv(filepath_or_buffer=word2vec_path, header=None, sep=" ", quoting=csv.QUOTE_NONE).values[:, 1:]
+        word_dict = pd.read_csv(filepath_or_buffer=word2vec_path, header=None, sep=" ", quoting=csv.QUOTE_NONE).values[
+                    :, 1:]
         dict_len, embed_size = word_dict.shape
         dict_len += 1
         unknown_word = np.zeros((1, embed_size))
@@ -27,18 +29,16 @@ class WordAttNet(nn.Module):
         self._create_weights(mean=0.0, std=0.05)
 
     def _create_weights(self, mean=0.0, std=0.05):
-
         self.word_weight.data.normal_(mean, std)
         self.context_weight.data.normal_(mean, std)
 
     def forward(self, input, hidden_state):
-
         output = self.lookup(input)
         f_output, h_output = self.gru(output.float(), hidden_state)  # feature output and hidden state output
         output = matrix_mul(f_output, self.word_weight, self.word_bias)
-        output = matrix_mul(output, self.context_weight).permute(1,0)
-        output = F.softmax(output)
-        output = element_wise_mul(f_output,output.permute(1,0))
+        output = matrix_mul(output, self.context_weight).permute(1, 0)
+        output = F.softmax(output, dim=-1)
+        output = element_wise_mul(f_output, output.permute(1, 0))
 
         return output, h_output
 
