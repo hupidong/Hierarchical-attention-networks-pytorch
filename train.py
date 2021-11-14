@@ -45,8 +45,12 @@ def train(opt):
         torch.manual_seed(123)
     DEVICE = torch.device('cuda' if CUDA else 'cpu')
 
-    output_file = open(os.path.join(opt.saved_path,'logs.txt'), "w")
-    output_file.write("Model's parameters: {}".format(vars(opt)))
+    # print parameters
+    print(opt)
+
+    output_file = open(os.path.join(opt.saved_path, 'logs.txt'), "w")
+    # output_file.write("Model's parameters: {}".format(vars(opt)))
+    output_file.write("Model's parameters: {}".format(dict(opt._asdict())))
     output_file.flush()
     training_params = {"batch_size": opt.batch_size,
                        "shuffle": True,
@@ -63,7 +67,6 @@ def train(opt):
 
     model = HierAttNet(opt.word_hidden_size, opt.sent_hidden_size, opt.batch_size, training_set.num_classes,
                        opt.word2vec_path, max_sent_length, max_word_length)
-
 
     if os.path.isdir(opt.log_path):
         shutil.rmtree(opt.log_path)
@@ -91,7 +94,8 @@ def train(opt):
             loss = criterion(predictions, label)
             loss.backward()
             optimizer.step()
-            training_metrics = get_evaluation(label.cpu().numpy(), predictions.cpu().detach().numpy(), list_metrics=["accuracy"])
+            training_metrics = get_evaluation(label.cpu().numpy(), predictions.cpu().detach().numpy(),
+                                              list_metrics=["accuracy"])
             print("Epoch: {}/{}, Iteration: {}/{}, Lr: {}, Loss: {}, Accuracy: {}".format(
                 epoch + 1,
                 opt.num_epoches,
@@ -148,5 +152,9 @@ def train(opt):
 
 
 if __name__ == "__main__":
-    opt = get_args()
-    train(opt)
+    # opt = get_args()
+    # train(opt)
+
+    from parameters import MY_PARAMETERS
+
+    train(MY_PARAMETERS)
