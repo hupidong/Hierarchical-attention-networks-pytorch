@@ -155,6 +155,6 @@ if __name__ == "__main__":
     # opt = get_args()
     # train(opt)
 
-    from parameters import MY_PARAMETERS
+    from src.parameters import MY_PARAMETERS
 
     train(MY_PARAMETERS)

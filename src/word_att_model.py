@@ -4,7 +4,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from src.utils import matrix_mul, element_wise_mul
+from utils import matrix_mul, element_wise_mul
 import pandas as pd
 import numpy as np
 import csv
@@ -13,8 +13,8 @@ import csv
 class WordAttNet(nn.Module):
     def __init__(self, word2vec_path, hidden_size=50):
         super(WordAttNet, self).__init__()
-        word_dict = pd.read_csv(filepath_or_buffer=word2vec_path, header=None, sep=" ", quoting=csv.QUOTE_NONE).values[
-                    :, 1:]
+        word_dict = pd.read_csv(filepath_or_buffer=word2vec_path, header=None, sep=" ",
+                                quoting=csv.QUOTE_NONE).values[:, 1:]
         dict_len, embed_size = word_dict.shape
         dict_len += 1
         unknown_word = np.zeros((1, embed_size))

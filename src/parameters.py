@@ -13,7 +13,7 @@ para_dict['saved_path'] = "trained_models"
 para_dict['sent_hidden_size'] = 50
 para_dict['test_interval'] = 5
 para_dict['test_set'] = "/Users/hupidong/Work/data/yelp/yelp_review_polarity/test.csv"
-para_dict['train_set'] = "/Users/hupidong/Work/data/yelp/yelp_review_polarity/train.csv"
+para_dict['train_set'] = "/Users/hupidong/Work/data/yelp/yelp_review_polarity/test.csv"
 para_dict['word2vec_path'] = "/Users/hupidong/Work/data/word-embeddings/glove.6B/glove.6B.50d.txt"
 para_dict['word_hidden_size'] = 50
 
