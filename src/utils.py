@@ -4,7 +4,6 @@
 import torch
 import sys
 import csv
-csv.field_size_limit(sys.maxsize)
 from nltk.tokenize import sent_tokenize, word_tokenize
 from sklearn import metrics
 import numpy as np
@@ -31,8 +30,8 @@ def matrix_mul(input, weight, bias=False):
             feature = feature + bias.expand(feature.size()[0], bias.size()[1])
         feature = torch.tanh(feature).unsqueeze(0)
         feature_list.append(feature)
-
-    return torch.cat(feature_list, 0).squeeze()
+    return torch.cat(feature_list, 0)
+    #return torch.cat(feature_list, 0).squeeze()
 
 def element_wise_mul(input1, input2):
 

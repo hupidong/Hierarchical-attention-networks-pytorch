@@ -10,6 +10,7 @@ from utils import get_max_lengths
 from dataset import MyDataset
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.plugins import DDPSpawnPlugin, DDPPlugin
 from sklearn import metrics
 import numpy as np
 
@@ -33,7 +34,6 @@ class HierAttNet(pl.LightningModule):
         self.max_word_length = max_word_length
         self.word_att_net = WordAttNet(pretrained_word2vec_path, word_hidden_size)
         self.sent_att_net = SentAttNet(sent_hidden_size, word_hidden_size, num_classes)
-        self._init_hidden_state()
         self.opt = opt
 
     def _init_hidden_state(self, last_batch_size=None):
@@ -48,43 +48,43 @@ class HierAttNet(pl.LightningModule):
         output_list = []
         input = input.permute(1, 0, 2)
         for i in input:
-            output, self.word_hidden_state = self.word_att_net(i.permute(1, 0), self.word_hidden_state)
+            output, _ = self.word_att_net(i.permute(1, 0))
             output_list.append(output)
         output = torch.cat(output_list, 0)
-        output, self.sent_hidden_state = self.sent_att_net(output, self.sent_hidden_state)
+        output, _ = self.sent_att_net(output)
         return output
 
     def training_step(self, train_batch, batch_idx):
         feature, label = train_batch
-        self._init_hidden_state()
+        #self._init_hidden_state()
         predictions = self.forward(feature)
         loss = cross_entropy_loss(predictions, label)
         self.log('train_loss', loss, prog_bar=True)
-        log = {'train_loss': loss.detach()}
+        log = {'train_loss': loss.detach().cpu()}
         return {'loss': loss, 'log': log}
 
     def validation_step(self, val_batch, batch_idx):
         feature, label = val_batch
-        self._init_hidden_state(last_batch_size=len(label))
+        #self._init_hidden_state(last_batch_size=len(label))
         predictions = self.forward(feature)
         loss = cross_entropy_loss(predictions, label)
-        y_pred = np.argmax(predictions.detach().numpy(), -1)
-        accuracy = metrics.accuracy_score(y_true=label.numpy(), y_pred=y_pred)
-        self.log('val_loss', loss)
+        y_pred = np.argmax(predictions.cpu().numpy(), -1)
+        accuracy = metrics.accuracy_score(y_true=label.cpu().numpy(), y_pred=y_pred)
+        self.log('val_loss', loss.cpu())
         self.log('val_accuracy', accuracy)
-        log = {'val_loss': loss.detach(), 'val_accuracy': accuracy}
+        log = {'val_loss': loss.detach().cpu(), 'val_accuracy': accuracy}
         return {'val_loss': loss, 'log': log}
 
     def test_step(self, test_batch, batch_idx):
         feature, label = test_batch
-        self._init_hidden_state(last_batch_size=len(label))
+        #self._init_hidden_state(last_batch_size=len(label))
         predictions = self.forward(feature)
         loss = cross_entropy_loss(predictions, label)
-        y_pred = np.argmax(predictions.detach().numpy(), -1)
-        accuracy = metrics.accuracy_score(y_true=label.numpy(), y_pred=y_pred)
-        self.log('test_loss', loss)
+        y_pred = np.argmax(predictions.cpu().numpy(), -1)
+        accuracy = metrics.accuracy_score(y_true=label.cpu().numpy(), y_pred=y_pred)
+        self.log('test_loss', loss.cpu())
         self.log('test_accuracy', accuracy)
-        log = {'test_loss': loss.detach()}
+        log = {'test_loss': loss.detach().cpu()}
         return {'loss': loss, 'log': log}
 
     def configure_optimizers(self):
@@ -97,7 +97,7 @@ class CustomMonitor(Callback):
     def on_validation_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         metrics = trainer.callback_metrics
         epoch = trainer.current_epoch
-        print(f"Epoch {epoch} Done: {metrics}")
+        print(f"Epoch {epoch}: {metrics}")
 
 
 if __name__ == "__main__":
@@ -111,9 +111,21 @@ if __name__ == "__main__":
     test_loader = DataLoader(test_set, batch_size=MY_PARAMETERS.batch_size, shuffle=False, drop_last=False)
 
     # train
-    model = HierAttNet(MY_PARAMETERS.word_hidden_size, MY_PARAMETERS.sent_hidden_size, MY_PARAMETERS.batch_size,
-                       train_set.num_classes, MY_PARAMETERS.word2vec_path, max_sent_length, max_word_length,
+    model = HierAttNet(MY_PARAMETERS.word_hidden_size,
+                       MY_PARAMETERS.sent_hidden_size,
+                       MY_PARAMETERS.batch_size,
+                       train_set.num_classes,
+                       MY_PARAMETERS.word2vec_path,
+                       max_sent_length,
+                       max_word_length,
                        MY_PARAMETERS)
-    trainer = pl.Trainer(callbacks=[CustomMonitor()], log_every_n_steps=2, num_sanity_val_steps=1, val_check_interval=0.1,
-                         num_processes=8, max_epochs=5)
-    trainer.fit(model=model, train_dataloaders=train_loader, val_dataloaders=test_loader)
+    trainer = pl.Trainer(callbacks=[CustomMonitor()],
+                         log_every_n_steps=2,
+                         num_sanity_val_steps=1,
+                         val_check_interval=0.1,
+                         max_epochs=5,
+                         gpus=0,
+                         strategy=[DDPPlugin(find_unused_parameters=False)])
+    trainer.fit(model=model,
+                train_dataloaders=train_loader,
+                val_dataloaders=test_loader)
